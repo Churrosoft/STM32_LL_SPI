@@ -1,9 +1,25 @@
-void send_byte(uint8_t byte)
+#include "../include/ll_spi.h"
+
+void spi_enable()
 {
     // Check if the SPI is enabled
     if ((SPI1->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
     {
         // If disabled, I enable it
+        SET_BIT(SPI1->CR1, SPI_CR1_SPE);
+    }
+}
+
+void spi_disable()
+{
+    CLEAR_BIT(SPI1->CR1, SPI_CR1_SPE);
+}
+
+void spi_send_byte(uint8_t byte)
+{
+
+    if ((SPI1->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
+    {
         SET_BIT(SPI1->CR1, SPI_CR1_SPE);
     }
 
@@ -15,17 +31,46 @@ void send_byte(uint8_t byte)
     while (SPI1->SR & SPI_SR_BSY)
         ;
     // Disable SPI
-    CLEAR_BIT(SPI1->CR1, SPI_CR1_SPE);
 }
 
-void read_byte()
+uint8_t spi_read_byte()
 {
+    volatile uint8_t data;
     if ((SPI1->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
+    {
         SET_BIT(SPI1->CR1, SPI_CR1_SPE);
+    }
+    while (!(SPI1->SR & SPI_SR_TXE))
+        ;
+
+    //purge all the shit
+    while (LL_SPI_IsActiveFlag_RXNE(SPI1))
+        LL_SPI_ReceiveData8(SPI1);
 
     LL_SPI_TransmitData8(SPI1, 0);
     data = LL_SPI_ReceiveData8(SPI1);
     while (SPI1->SR & SPI_SR_BSY)
         ;
-    CLEAR_BIT(SPI1->CR1, SPI_CR1_SPE);
+    return data;
+}
+
+void spi_read_multiple(uint8_t *rx_buffer, uint32_t bytes_to_receive)
+{
+
+    //BUG: first byte is always garbage
+    spi_read_byte();
+    for (uint32_t index = 0; index < bytes_to_receive; index++)
+    {
+        rx_buffer[index] = spi_read_byte();
+    }
+}
+
+void spi_send_multiple(uint8_t *tx_buffer, uint32_t bytes_to_send)
+{
+
+    for (uint32_t index = 0; index < bytes_to_send; index++)
+    {
+        //TODO: en caso de que la data sea divisible por 16, se puede utilizar LL_SPI_TransmitData16 para tardar la mitad de tiempo
+        spi_send_byte(tx_buffer[index]);
+    }
 }
