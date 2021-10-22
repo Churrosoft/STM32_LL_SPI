@@ -3,32 +3,32 @@
 void spi_enable()
 {
     // Check if the SPI is enabled
-    if ((SPI1->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
+    if ((SPI2->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
     {
         // If disabled, I enable it
-        SET_BIT(SPI1->CR1, SPI_CR1_SPE);
+        SET_BIT(SPI2->CR1, SPI_CR1_SPE);
     }
 }
 
 void spi_disable()
 {
-    CLEAR_BIT(SPI1->CR1, SPI_CR1_SPE);
+    CLEAR_BIT(SPI2->CR1, SPI_CR1_SPE);
 }
 
 void spi_send_byte(uint8_t byte)
 {
 
-    if ((SPI1->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
+    if ((SPI2->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
     {
-        SET_BIT(SPI1->CR1, SPI_CR1_SPE);
+        SET_BIT(SPI2->CR1, SPI_CR1_SPE);
     }
 
-    while (!(SPI1->SR & SPI_SR_TXE))
+    while (!(SPI2->SR & SPI_SR_TXE))
         ;
     // Send bytes over the SPI
-    LL_SPI_TransmitData8(SPI1, byte);
+    LL_SPI_TransmitData8(SPI2, byte);
     // Wait until the transmission is complete
-    while (SPI1->SR & SPI_SR_BSY)
+    while (SPI2->SR & SPI_SR_BSY)
         ;
     // Disable SPI
 }
@@ -36,20 +36,20 @@ void spi_send_byte(uint8_t byte)
 uint8_t spi_read_byte()
 {
     volatile uint8_t data;
-    if ((SPI1->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
+    if ((SPI2->CR1 & SPI_CR1_SPE) != SPI_CR1_SPE)
     {
-        SET_BIT(SPI1->CR1, SPI_CR1_SPE);
+        SET_BIT(SPI2->CR1, SPI_CR1_SPE);
     }
-    while (!(SPI1->SR & SPI_SR_TXE))
+    while (!(SPI2->SR & SPI_SR_TXE))
         ;
 
     //purge all the shit
-    while (LL_SPI_IsActiveFlag_RXNE(SPI1))
-        LL_SPI_ReceiveData8(SPI1);
+    while (LL_SPI_IsActiveFlag_RXNE(SPI2))
+        LL_SPI_ReceiveData8(SPI2);
 
-    LL_SPI_TransmitData8(SPI1, 0);
-    data = LL_SPI_ReceiveData8(SPI1);
-    while (SPI1->SR & SPI_SR_BSY)
+    LL_SPI_TransmitData8(SPI2, 0);
+    data = LL_SPI_ReceiveData8(SPI2);
+    while (SPI2->SR & SPI_SR_BSY)
         ;
     return data;
 }
